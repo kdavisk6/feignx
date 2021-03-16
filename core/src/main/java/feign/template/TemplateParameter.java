@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 OpenFeign Contributors
+ * Copyright 2019-2021 OpenFeign Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,13 @@ public interface TemplateParameter {
    * @return the parameter name.
    */
   String name();
+
+  /**
+   * Fully Qualified Type name of the parameter.
+   *
+   * @return the type name;
+   */
+  String type();
 
   /**
    * {@link ExpressionExpander} instance to use when this parameter is expanded as part of a

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 OpenFeign Contributors
+ * Copyright 2019-2021 OpenFeign Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,6 +26,7 @@ import java.util.Objects;
 public class SimpleTemplateParameter implements TemplateParameter {
 
   private final String name;
+  private String type;
   private ExpressionExpander expander = new SimpleExpander();
 
   /**
@@ -52,6 +53,31 @@ public class SimpleTemplateParameter implements TemplateParameter {
   }
 
   /**
+   * Creates a new {@link SimpleTemplateParameter}.
+   *
+   * @param name of the parameter.
+   * @param type fully qualified type name.
+   */
+  public SimpleTemplateParameter(String name, String type) {
+    this(name);
+    Assert.isNotEmpty(type, "type is required.");
+    this.type = type;
+  }
+
+  /**
+   * Creates a new {@link SimpleTemplateParameter}.
+   *
+   * @param name of the parameter.
+   * @param type fully qualified type name of the parameter.
+   * @param expander to use when expandeing the expression contained.
+   */
+  public SimpleTemplateParameter(String name, String type, ExpressionExpander expander) {
+    this(name, expander);
+    Assert.isNotEmpty(type, "type is required.");
+    this.type = type;
+  }
+
+  /**
    * The name of the parameter.
    *
    * @return parameter name.
@@ -69,6 +95,16 @@ public class SimpleTemplateParameter implements TemplateParameter {
   @Override
   public ExpressionExpander expander() {
     return this.expander;
+  }
+
+  /**
+   * Fully Qualified Type name of the parameter.
+   *
+   * @return the type name;
+   */
+  @Override
+  public String type() {
+    return this.type;
   }
 
   /**

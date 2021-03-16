@@ -28,7 +28,7 @@ public interface TargetMethodHandlerFactory {
    * @param feignConfiguration with the shared configuration.
    * @return a TargetMethodHandler instance.
    */
-  <T> TargetMethodHandler<T> create(TargetMethodDefinition targetMethodDefinition,
+  TargetMethodHandler create(TargetMethodDefinition targetMethodDefinition,
       FeignConfiguration feignConfiguration);
 
 }

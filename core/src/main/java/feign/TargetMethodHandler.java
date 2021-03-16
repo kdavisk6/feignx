@@ -19,7 +19,7 @@ package feign;
 /**
  * Functional Handler for a method found on a given Target.
  */
-public interface TargetMethodHandler<T> {
+public interface TargetMethodHandler {
 
   /**
    * Handle the method execution.
@@ -28,6 +28,6 @@ public interface TargetMethodHandler<T> {
    * @return the result of the operation.
    * @throws Throwable if the operation failed.
    */
-  T execute(Object[] args) throws Throwable;
+  Object execute(Object[] args) throws Throwable;
 
 }

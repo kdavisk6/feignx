@@ -393,7 +393,8 @@ public final class TargetMethodDefinition {
      * @return the reference chain.
      */
     public Builder connectTimeout(long connectTimeout) {
-      this.connectTimeout = connectTimeout;
+      this.connectTimeout =
+          (connectTimeout > 0) ? connectTimeout : RequestOptions.DEFAULT_CONNECT_TIMEOUT;
       return this;
     }
 
@@ -404,7 +405,7 @@ public final class TargetMethodDefinition {
      * @return the reference chain.
      */
     public Builder readTimeout(long readTimeout) {
-      this.readTimeout = readTimeout;
+      this.readTimeout = (readTimeout > 0) ? readTimeout : RequestOptions.DEFAULT_READ_TIMEOUT;
       return this;
     }
 
@@ -472,7 +473,7 @@ public final class TargetMethodDefinition {
      * @return the reference chain.
      */
     public Builder body(Integer argumentIndex) {
-      this.bodyArgumentIndex = argumentIndex;
+      this.bodyArgumentIndex = (argumentIndex > 0) ? argumentIndex : -1;
       return this;
     }
 
