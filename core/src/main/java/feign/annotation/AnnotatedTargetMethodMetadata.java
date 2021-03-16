@@ -14,19 +14,8 @@
  * limitations under the License.
  */
 
-package io.openfeign;
+package feign.annotation;
 
-import feign.FeignTarget;
-import feign.contract.Param;
-import feign.contract.Request;
-import feign.http.HttpMethod;
-import java.util.List;
-
-@FeignTarget(uri = "https://api.github.com", decoder = JacksonDecoder.class)
-public interface TestService {
-
-  @Request(method = HttpMethod.GET, value = "/repos/{owner}/{repo}/contributors")
-  List<String> getContributors(@Param("owner") String owner,
-      @Param("repo") String repository);
+public class AnnotatedTargetMethodMetadata {
 
 }

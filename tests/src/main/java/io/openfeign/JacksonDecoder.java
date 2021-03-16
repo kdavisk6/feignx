@@ -16,17 +16,25 @@
 
 package io.openfeign;
 
-import feign.FeignTarget;
-import feign.contract.Param;
-import feign.contract.Request;
-import feign.http.HttpMethod;
-import java.util.List;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import feign.Response;
+import feign.decoder.AbstractResponseDecoder;
+import java.io.IOException;
 
-@FeignTarget(uri = "https://api.github.com", decoder = JacksonDecoder.class)
-public interface TestService {
+public class JacksonDecoder extends AbstractResponseDecoder {
 
-  @Request(method = HttpMethod.GET, value = "/repos/{owner}/{repo}/contributors")
-  List<String> getContributors(@Param("owner") String owner,
-      @Param("repo") String repository);
+  private final ObjectMapper objectMapper;
 
+  public JacksonDecoder() {
+    this.objectMapper = new ObjectMapper();
+  }
+
+  @Override
+  protected <T> T decodeInternal(Response response, Class<T> type) {
+    try {
+      return this.objectMapper.readValue(response.toByteArray(), type);
+    } catch (IOException ioe) {
+      throw new IllegalStateException("Error occurred reading response", ioe);
+    }
+  }
 }

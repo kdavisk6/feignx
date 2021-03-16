@@ -16,30 +16,24 @@
 
 package io.openfeign;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import feign.Feign;
 import feign.FeignConfiguration;
-import feign.Response;
 import feign.TargetMethodDefinition;
 import feign.TargetMethodHandler;
 import feign.TargetMethodHandlerFactory;
-import feign.decoder.AbstractResponseDecoder;
 import feign.http.HttpHeader;
 import feign.http.HttpMethod;
 import feign.impl.TypeDrivenMethodHandlerFactory;
 import feign.impl.UriTarget;
 import feign.template.SimpleTemplateParameter;
 import feign.template.TemplateParameter;
-import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Function;
 
 /**
  * Functional Test that demonstrates what a static version of a Feign Target could look like.
@@ -69,8 +63,9 @@ public class TestServiceFunctionalTest {
                   TestService.class,
                   HttpMethod.GET,
                   "/repos/{owner}/{repo}/contributors",
-                  methodName, List.class, -1, -1, -1,
-                  Collections.emptyList(),
+                  methodName, List.class, true,
+                  -1, -1, -1,
+                  List.of(),
                   List.of(
                       new SimpleTemplateParameter("owner", String.class.getName()),
                       new SimpleTemplateParameter("repo", String.class.getName()))));
@@ -84,8 +79,10 @@ public class TestServiceFunctionalTest {
     private TargetMethodHandler getTargetMethodHandler(
         Class<?> type,
         HttpMethod method,
-        String uri, String methodName,
+        String uri,
+        String methodName,
         Class<?> returnType,
+        boolean followRedirects,
         long readTimeout,
         long connectTimeout,
         int body,
@@ -98,6 +95,7 @@ public class TestServiceFunctionalTest {
           .name(methodName)
           .returnType(returnType)
           .readTimeout(readTimeout)
+          .followRedirects(followRedirects)
           .body(body)
           .connectTimeout(connectTimeout);
 
@@ -135,24 +133,6 @@ public class TestServiceFunctionalTest {
       return sb.toString();
     }
 
-  }
-
-  public static class JacksonDecoder extends AbstractResponseDecoder {
-
-    private final ObjectMapper objectMapper;
-
-    public JacksonDecoder() {
-      this.objectMapper = new ObjectMapper();
-    }
-
-    @Override
-    protected <T> T decodeInternal(Response response, Class<T> type) {
-      try {
-        return this.objectMapper.readValue(response.toByteArray(), type);
-      } catch (IOException ioe) {
-        throw new IllegalStateException("Error occurred reading response", ioe);
-      }
-    }
   }
 
   /**

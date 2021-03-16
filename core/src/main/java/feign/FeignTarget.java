@@ -16,6 +16,9 @@
 
 package feign;
 
+import feign.contract.FeignContract;
+import feign.http.client.UrlConnectionClient;
+import feign.logging.SimpleLogger;
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Inherited;
@@ -25,12 +28,69 @@ import java.lang.annotation.Target;
 
 /**
  * Declares a given interface a Feign {@link feign.Target}.  Used by our annotation processor
- * to generate target implementations at compile time.
+ * to generate target implementations at compile time.  Provides and entry point for a
+ * {@link FeignConfiguration} into the annotation processor.
  */
 @Target({ElementType.TYPE})
 @Retention(RetentionPolicy.CLASS)
 @Documented
 @Inherited
 public @interface FeignTarget {
+
+  /**
+   * Name of the Target.  Default to the annotated class name.
+   *
+   * @return target name.
+   */
+  String value() default "";
+
+  /**
+   * Encoder to use with this Target.
+   *
+   * @return RequestEncoder type.
+   */
+  Class<? extends RequestEncoder> encoder() default RequestEncoder.class;
+
+  /**
+   * {@link ResponseDecoder} to use with this Target.
+   *
+   * @return ResponseDecoder type.
+   */
+  Class<? extends ResponseDecoder> decoder() default ResponseDecoder.class;
+
+  /**
+   * Base URI for this Target.  Must be absolute.
+   *
+   * @return absolute uri for all requests.
+   */
+  String uri();
+
+  /**
+   * {@link Client} to use.
+   *
+   * @return Client type.
+   */
+  Class<? extends Client> client() default UrlConnectionClient.class;
+
+  /**
+   * {@link Contract} to use.
+   *
+   * @return Contract type.
+   */
+  Class<? extends Contract> contract() default FeignContract.class;
+
+  /**
+   * {@link Logger} to use.
+   *
+   * @return Logger type.
+   */
+  Class<? extends Logger> logger() default SimpleLogger.class;
+
+  /**
+   * {@link ExceptionHandler} to use.
+   *
+   * @return ExceptionHandler type.
+   */
+  Class<? extends ExceptionHandler> exceptionHandler() default ExceptionHandler.class;
 
 }

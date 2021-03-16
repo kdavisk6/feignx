@@ -16,17 +16,19 @@
 
 package io.openfeign;
 
-import feign.FeignTarget;
-import feign.contract.Param;
-import feign.contract.Request;
-import feign.http.HttpMethod;
-import java.util.List;
+import feign.Contract;
+import feign.Target;
+import feign.TargetMethodDefinition;
+import java.util.Collection;
 
-@FeignTarget(uri = "https://api.github.com", decoder = JacksonDecoder.class)
-public interface TestService {
+public class LocalContract implements Contract {
 
-  @Request(method = HttpMethod.GET, value = "/repos/{owner}/{repo}/contributors")
-  List<String> getContributors(@Param("owner") String owner,
-      @Param("repo") String repository);
+  public LocalContract() {
+    super();
+  }
 
+  @Override
+  public Collection<TargetMethodDefinition> apply(Target<?> target) {
+    return null;
+  }
 }
