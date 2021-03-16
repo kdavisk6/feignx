@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 OpenFeign Contributors
+ * Copyright 2019-2021 OpenFeign Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,8 +27,8 @@ import java.util.List;
  */
 public class WildCardTypeDefinition extends AbstractTypeDefinition implements WildcardType {
 
-  private List<TypeDefinition> upperBounds;
-  private List<TypeDefinition> lowerBounds;
+  private final List<TypeDefinition> upperBounds;
+  private final List<TypeDefinition> lowerBounds;
 
   /**
    * Creates a new WildcardType definition.

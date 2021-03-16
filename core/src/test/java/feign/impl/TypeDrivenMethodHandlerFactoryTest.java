@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 OpenFeign Contributors
+ * Copyright 2019-2021 OpenFeign Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,6 +30,7 @@ import feign.Retry;
 import feign.Target;
 import feign.TargetMethodDefinition;
 import feign.TargetMethodHandler;
+import java.net.URI;
 import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
@@ -60,7 +61,8 @@ class TypeDrivenMethodHandlerFactoryTest {
         mock(ExceptionHandler.class),
         mock(Executor.class),
         mock(Logger.class),
-        mock(Retry.class));
+        mock(Retry.class),
+        mock(URI.class));
 
     this.methodHandlerFactory = new TypeDrivenMethodHandlerFactory();
   }

@@ -25,7 +25,8 @@ import java.util.List;
 @FeignTarget
 public interface TestService {
 
-  @Request(method = HttpMethod.GET, value = "/contributors/{repository}")
-  List<String> getContributors(@Param("repository") String repository);
+  @Request(method = HttpMethod.GET, value = "/repos/{owner}/{repo}/contributors")
+  List<String> getContributors(@Param("owner") String owner,
+      @Param("repo") String repository);
 
 }

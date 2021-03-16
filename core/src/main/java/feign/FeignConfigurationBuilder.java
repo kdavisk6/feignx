@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 OpenFeign Contributors
+ * Copyright 2019-2021 OpenFeign Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 package feign;
 
+import java.net.URI;
 import java.util.concurrent.Executor;
 
 /**
@@ -106,6 +107,14 @@ public interface FeignConfigurationBuilder<B extends FeignConfigurationBuilder,
    * @return the builder chain.
    */
   B retry(Retry retry);
+
+  /**
+   * URI for all requests.
+   *
+   * @param uri to base all requests on.
+   * @return the builder chain.
+   */
+  B uri(URI uri);
 
   /**
    * Build the Configuration.

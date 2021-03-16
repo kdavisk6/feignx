@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 OpenFeign Contributors
+ * Copyright 2019-2021 OpenFeign Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@ package feign;
 /**
  * Functional Handler for a method found on a given Target.
  */
-public interface TargetMethodHandler {
+public interface TargetMethodHandler<T> {
 
   /**
    * Handle the method execution.
@@ -28,6 +28,6 @@ public interface TargetMethodHandler {
    * @return the result of the operation.
    * @throws Throwable if the operation failed.
    */
-  Object execute(Object[] args) throws Throwable;
+  T execute(Object[] args) throws Throwable;
 
 }

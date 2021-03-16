@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 OpenFeign Contributors
+ * Copyright 2019-2021 OpenFeign Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,6 +28,7 @@ import feign.ResponseDecoder;
 import feign.Retry;
 import feign.Target;
 import feign.support.Assert;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executor;
@@ -44,6 +45,7 @@ public abstract class AbstractFeignConfigurationBuilder
     implements FeignConfigurationBuilder<B, C> {
 
   protected final B self;
+  protected URI uri;
   protected Client client;
   protected RequestEncoder encoder;
   protected List<RequestInterceptor> interceptors = new ArrayList<>();
@@ -191,6 +193,19 @@ public abstract class AbstractFeignConfigurationBuilder
   public B retry(Retry retry) {
     Assert.isNotNull(retry, "retry cannot be null");
     this.retry = retry;
+    return this.self;
+  }
+
+  /**
+   * URI to use for all requests.
+   *
+   * @param uri to base all requests on.
+   * @return the builder reference chain
+   */
+  @Override
+  public B uri(URI uri) {
+    Assert.isNotNull(uri, "uri cannot be null");
+    this.uri = uri;
     return this.self;
   }
 }

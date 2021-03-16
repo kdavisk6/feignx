@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 OpenFeign Contributors
+ * Copyright 2019-2021 OpenFeign Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -57,7 +57,7 @@ public abstract class Feign {
   /**
    * Default {@link FeignConfigurationBuilder}.  Provides access to the core Feign components.
    */
-  static class FeignConfigurationBuilderImpl extends
+  public static class FeignConfigurationBuilderImpl extends
       AbstractFeignConfigurationBuilder<FeignConfigurationBuilderImpl, FeignConfiguration> {
 
     /**
@@ -98,7 +98,7 @@ public abstract class Feign {
     public FeignConfiguration build() {
       return new BaseFeignConfiguration(
           this.target, this.contract, this.encoder, this.interceptors, this.client, this.decoder,
-          this.exceptionHandler, this.executor, this.logger, this.retry);
+          this.exceptionHandler, this.executor, this.logger, this.retry, this.uri);
     }
 
     /**

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 OpenFeign Contributors
+ * Copyright 2019-2021 OpenFeign Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,6 +23,9 @@ import java.lang.reflect.TypeVariable;
 import java.lang.reflect.WildcardType;
 import java.util.ArrayList;
 import java.util.List;
+import javax.lang.model.type.DeclaredType;
+import javax.lang.model.type.PrimitiveType;
+import javax.lang.model.type.TypeMirror;
 
 /**
  * Factory responsible for inspecting a given Generic {@link Type} and parsing the type variables
@@ -58,6 +61,10 @@ public class TypeDefinitionFactory {
       return this.define((TypeVariable) type, context);
     }
     throw new IllegalArgumentException("Type " + type.getTypeName() + " is not supported.");
+  }
+
+  public TypeDefinition create(TypeMirror typeMirror) {
+    throw new IllegalArgumentException("Type " + typeMirror.getClass() + " is not supported.");
   }
 
   /**

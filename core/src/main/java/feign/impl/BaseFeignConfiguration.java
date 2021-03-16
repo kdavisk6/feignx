@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 OpenFeign Contributors
+ * Copyright 2019-2021 OpenFeign Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,6 +26,7 @@ import feign.RequestInterceptor;
 import feign.ResponseDecoder;
 import feign.Retry;
 import feign.Target;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -46,6 +47,7 @@ public class BaseFeignConfiguration implements FeignConfiguration {
   private final ExceptionHandler exceptionHandler;
   private final Logger logger;
   private final Retry retry;
+  private final URI uri;
 
   /**
    * Creates a new Base Feign Configuration.
@@ -60,11 +62,12 @@ public class BaseFeignConfiguration implements FeignConfiguration {
    * @param executor to use.
    * @param logger to use.
    * @param retry to use.
+   * @param uri to use.
    */
   public BaseFeignConfiguration(Target target, Contract contract, RequestEncoder encoder,
       List<RequestInterceptor> interceptors, Client client, ResponseDecoder decoder,
       ExceptionHandler exceptionHandler, Executor executor, Logger logger,
-      Retry retry) {
+      Retry retry, URI uri) {
     this.client = client;
     this.requestEncoder = encoder;
     this.responseDecoder = decoder;
@@ -75,6 +78,7 @@ public class BaseFeignConfiguration implements FeignConfiguration {
     this.exceptionHandler = exceptionHandler;
     this.logger = logger;
     this.retry = retry;
+    this.uri = uri;
   }
 
   @Override
@@ -126,5 +130,10 @@ public class BaseFeignConfiguration implements FeignConfiguration {
   @Override
   public Retry getRetry() {
     return this.retry;
+  }
+
+  @Override
+  public URI getUri() {
+    return this.uri;
   }
 }
