@@ -22,6 +22,15 @@ package feign.template;
 public interface ExpanderRegistry {
 
   /**
+   * Retrieves an {@link ExpressionExpander} based on the type name.
+   *
+   * @param type with the fully qualified class name of the type expected..
+   * @return an {@link ExpressionExpander} instance.
+   * @throws IllegalStateException if the expander instance could not be created.
+   */
+  ExpressionExpander getExpanderByTypeName(String type);
+
+  /**
    * Retrieves an {@link ExpressionExpander} based on the type.
    *
    * @param type of the value to be expanded.

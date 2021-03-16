@@ -19,11 +19,18 @@ package feign.contract;
 import feign.Contract;
 import feign.Target;
 import feign.TargetMethodDefinition;
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
+import java.lang.reflect.Type;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,9 +43,16 @@ public abstract class AbstractAnnotationDrivenContract implements Contract {
   private static final Logger logger =
       LoggerFactory.getLogger(AbstractAnnotationDrivenContract.class);
 
+  private final Map<Class<? extends Annotation>,
+      AnnotationProcessor<Annotation>> annotationProcessors = new ConcurrentHashMap<>();
+
+  private final Map<Class<? extends Annotation>,
+      ParameterAnnotationProcessor<Annotation>> processAnnotationProcessors =
+      new ConcurrentHashMap<>();
+
   /**
-   * Using the Contract annotations, process the Target and create the appropriate
-   * {@link TargetMethodDefinition}s.
+   * Using the Contract annotations, process the Target and create the appropriate {@link
+   * TargetMethodDefinition}s.
    *
    * @param target to apply this contract to.
    * @return a Collection of {@link TargetMethodDefinition}s with each methods configuration.
@@ -54,19 +68,27 @@ public abstract class AbstractAnnotationDrivenContract implements Contract {
     TargetMethodDefinition.Builder builder = TargetMethodDefinition.builder(target);
 
     logger.debug("Applying Contract to {}", targetType.getSimpleName());
-    this.processAnnotationsOnType(targetType, builder);
+
+    this.processAnnotations(targetType.getAnnotations(), builder);
+
     TargetMethodDefinition root = builder.build();
 
     for (Method method : targetType.getMethods()) {
       /* create a new metadata object from the root */
       TargetMethodDefinition.Builder methodBuilder = TargetMethodDefinition.from(root);
-      this.processAnnotationsOnMethod(targetType, method, methodBuilder);
+      methodBuilder.name(method.getName());
+      methodBuilder.returnType(method.getGenericReturnType());
+      methodBuilder.tag(this.getMethodTag(targetType, method));
+
+      /* process the method */
+      this.processAnnotations(method.getAnnotations(), methodBuilder);
 
       /* process method parameters */
       Parameter[] parameters = method.getParameters();
       for (int i = 0; i < parameters.length; i++) {
         Parameter parameter = parameters[i];
-        this.processAnnotationsOnParameter(parameter, i, methodBuilder);
+        this.processAnnotationsOnParameter(parameter.getAnnotations(), i,
+            parameter.getType().getCanonicalName(), methodBuilder);
       }
 
       /* build the instance */
@@ -106,35 +128,67 @@ public abstract class AbstractAnnotationDrivenContract implements Contract {
     return methods;
   }
 
-  /**
-   * Apply any Annotations located at the Type level.  Any definitions applied at this level will
-   * be used as defaults for all methods on the target, unless redefined at the method or
-   * parameter level.
-   *
-   * @param targetType to inspect.
-   * @param targetMethodDefinitionBuilder to store the applied configuration.
-   */
-  protected abstract void processAnnotationsOnType(Class<?> targetType,
-      TargetMethodDefinition.Builder targetMethodDefinitionBuilder);
+  private void processAnnotations(Annotation[] annotations,
+      TargetMethodDefinition.Builder builder) {
+    Arrays.stream(annotations)
+        .filter(annotation -> this.annotationProcessors.containsKey(annotation.annotationType()))
+        .forEach(annotation -> {
+          AnnotationProcessor<Annotation> annotationProcessor = this.annotationProcessors
+              .get(annotation.annotationType());
+          annotationProcessor.process(annotation, builder);
+        });
+  }
+
+  private void processAnnotationsOnParameter(Annotation[] annotations, Integer index,
+      String type, TargetMethodDefinition.Builder builder) {
+    Arrays.stream(annotations)
+        .filter(
+            annotation -> this.processAnnotationProcessors.containsKey(annotation.annotationType()))
+        .forEach(annotation -> {
+          ParameterAnnotationProcessor<Annotation> annotationProcessor =
+              this.processAnnotationProcessors.get(annotation.annotationType());
+          annotationProcessor.process(annotation, index, type, builder);
+        });
+  }
+
+  @SuppressWarnings("unchecked")
+  protected <A extends Annotation> void registerAnnotationProcessor(
+      Class<A> annotation, AnnotationProcessor<A> processor) {
+    this.annotationProcessors
+        .computeIfAbsent(annotation, annotationType -> (AnnotationProcessor<Annotation>) processor);
+  }
+
+  @SuppressWarnings("unchecked")
+  protected <A extends Annotation> void registerParameterAnnotationProcessor(
+      Class<A> annotation, ParameterAnnotationProcessor<A> processor) {
+    this.processAnnotationProcessors
+        .computeIfAbsent(annotation,
+            annotationType -> (ParameterAnnotationProcessor<Annotation>) processor);
+  }
 
   /**
-   * Apply any Annotations located at the Method level.
+   * Constructs a name for a Method that is formatted as a See Tag.
    *
-   * @param targetType to the method belongs to.
-   * @param method to inspect
-   * @param targetMethodDefinitionBuilder to store the applied configuration.
+   * @param targetType containing the method.
+   * @param method to inspect.
+   * @return a See Tag inspired name for the method.
    */
-  protected abstract void processAnnotationsOnMethod(Class<?> targetType, Method method,
-      TargetMethodDefinition.Builder targetMethodDefinitionBuilder);
-
-  /**
-   * Apply any Annotations located at the Parameter level.
-   *
-   * @param parameter to inspect.
-   * @param parameterIndex of the parameter in the method definition.
-   * @param targetMethodDefinitionBuilder to store the applied configuration.
-   */
-  protected abstract void processAnnotationsOnParameter(Parameter parameter, Integer parameterIndex,
-      TargetMethodDefinition.Builder targetMethodDefinitionBuilder);
-
+  private String getMethodTag(Class<?> targetType, Method method) {
+    StringBuilder sb = new StringBuilder()
+        .append(targetType.getSimpleName())
+        .append("#")
+        .append(method.getName())
+        .append("(");
+    List<Type> parameters = Arrays.asList(method.getGenericParameterTypes());
+    Iterator<Type> iterator = parameters.iterator();
+    while (iterator.hasNext()) {
+      Type parameter = iterator.next();
+      sb.append(parameter.getTypeName());
+      if (iterator.hasNext()) {
+        sb.append(",");
+      }
+    }
+    sb.append(")");
+    return sb.toString();
+  }
 }

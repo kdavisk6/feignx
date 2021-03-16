@@ -25,7 +25,7 @@ import net.jcip.annotations.ThreadSafe;
  */
 @ThreadSafe
 @Immutable
-public class AnnotatedTargetMetadata {
+public class AnnotatedTargetDefinition {
 
   private final String targetName;
   private final String targetType;
@@ -41,7 +41,7 @@ public class AnnotatedTargetMetadata {
     return new Builder(targetName, targetType, targetUri);
   }
 
-  private AnnotatedTargetMetadata(String targetName, String targetType, String targetUri,
+  private AnnotatedTargetDefinition(String targetName, String targetType, String targetUri,
       String clientClassName, String contractClassName, String loggerClassName,
       String exceptionHandlerClassName, String requestEncoderClassName,
       String responseDecoderClassName) {
@@ -144,17 +144,16 @@ public class AnnotatedTargetMetadata {
     }
 
     /**
-     * Creates a new {@link AnnotatedTargetMetadata} instance.
+     * Creates a new {@link AnnotatedTargetDefinition} instance.
      *
-     * @return an {@link AnnotatedTargetMetadata} instance.
+     * @return an {@link AnnotatedTargetDefinition} instance.
      */
-    public AnnotatedTargetMetadata build() {
-      return new AnnotatedTargetMetadata(this.targetName, this.targetType, this.targetUri,
+    public AnnotatedTargetDefinition build() {
+      return new AnnotatedTargetDefinition(this.targetName, this.targetType, this.targetUri,
           this.clientClassName, this.contractClassName, this.loggerClassName,
           this.exceptionHandlerClassName, this.requestEncoderClassName,
           this.responseDecoderClassName);
     }
   }
-
 
 }

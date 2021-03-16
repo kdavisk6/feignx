@@ -19,7 +19,10 @@ package feign.annotation;
 import feign.Contract;
 import feign.FeignTarget;
 import feign.impl.type.TypeDefinitionFactory;
+import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
+import java.util.Collection;
+import java.util.List;
 import java.util.Set;
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.Messager;
@@ -30,9 +33,9 @@ import javax.lang.model.SourceVersion;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.TypeElement;
+import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.MirroredTypeException;
-import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.Elements;
 import javax.lang.model.util.Types;
 import javax.tools.Diagnostic.Kind;
@@ -67,21 +70,32 @@ public class FeignTargetAnnotationProcessor extends AbstractProcessor {
             final String target = typeElement.getQualifiedName().toString();
 
             FeignTarget feignTarget = element.getAnnotation(FeignTarget.class);
-            AnnotatedTargetMetadata metadata = this.annotatedTargetMetadata(feignTarget, target);
+            AnnotatedTargetDefinition metadata = this.annotatedTargetMetadata(feignTarget, target);
 
             /* obtain a contract instance for the rest of this process */
-            Contract contract = this.getContract(metadata);
+            AnnotatedContract contract = this.getContract(metadata);
 
-            element.getEnclosedElements()
+            /* check the target element for top level information */
+            AnnotatedTargetMethodDefinition.Builder methodMetadata = AnnotatedTargetMethodDefinition
+                .builder();
+
+            this.processAnnotationOnClass(typeElement, contract, methodMetadata);
+
+            typeElement.getEnclosedElements()
                 .stream()
-                .filter(method -> ElementKind.METHOD == method.getKind())
+                .filter(executableElement -> ElementKind.METHOD == executableElement.getKind())
                 .map(ExecutableElement.class::cast)
                 .forEach(method -> {
-                  final String name = method.getSimpleName().toString();
-                  final TypeMirror returnType = method.getReturnType();
+                  this.processAnnotationOnMethod(method, contract, methodMetadata);
 
+                  List<? extends VariableElement> parameters = method.getParameters();
+                  if (!parameters.isEmpty()) {
+                    for (int i = 0; i < parameters.size(); i++) {
+                      VariableElement parameter = parameters.get(i);
+                      this.processAnnotationOnParameter(parameter, i, contract, methodMetadata);
+                    }
+                  }
                 });
-
           });
       return true;
     } catch (Exception ex) {
@@ -95,10 +109,57 @@ public class FeignTargetAnnotationProcessor extends AbstractProcessor {
     return Set.of(FeignTarget.class.getTypeName());
   }
 
-  private AnnotatedTargetMetadata annotatedTargetMetadata(FeignTarget feignTarget,
+  private void processAnnotationOnClass(TypeElement typeElement, AnnotatedContract contract,
+      AnnotatedTargetMethodDefinition.Builder builder) {
+    Collection<Class<? extends Annotation>> classAnnotations = contract
+        .getSupportedClassAnnotations();
+    if (!classAnnotations.isEmpty()) {
+      classAnnotations.forEach(annotation -> {
+        Annotation ann = typeElement.getAnnotation(annotation);
+        if (ann != null) {
+          System.out.println(ann);
+        }
+      });
+    }
+  }
+
+  private void processAnnotationOnMethod(ExecutableElement element, AnnotatedContract contract,
+      AnnotatedTargetMethodDefinition.Builder builder) {
+
+    builder.name(element.getSimpleName().toString())
+        .returnTypeClassName(element.getReturnType().toString());
+
+    Collection<Class<? extends Annotation>> classAnnotations = contract
+        .getSupportedMethodAnnotations();
+    if (!classAnnotations.isEmpty()) {
+      classAnnotations.forEach(annotation -> {
+        Annotation ann = element.getAnnotation(annotation);
+        if (ann != null) {
+          System.out.println(ann);
+        }
+      });
+    }
+  }
+
+  private void processAnnotationOnParameter(VariableElement element, Integer index,
+      AnnotatedContract contract, AnnotatedTargetMethodDefinition.Builder builder) {
+
+    Collection<Class<? extends Annotation>> classAnnotations = contract
+        .getSupportedParameterAnnotations();
+    if (!classAnnotations.isEmpty()) {
+      classAnnotations.forEach(annotation -> {
+        Annotation ann = element.getAnnotation(annotation);
+        if (ann != null) {
+          System.out.println(ann);
+        }
+      });
+    }
+  }
+
+  private AnnotatedTargetDefinition annotatedTargetMetadata(FeignTarget feignTarget,
       String targetType) {
-    AnnotatedTargetMetadata.Builder builder =
-        AnnotatedTargetMetadata.builder(feignTarget.value(), targetType, feignTarget.uri());
+    AnnotatedTargetDefinition.Builder builder =
+        AnnotatedTargetDefinition.builder(feignTarget.value(), targetType, feignTarget.uri());
 
     /* process each class reference one by one, dealing with type mirrors as we go */
     try {
@@ -150,17 +211,18 @@ public class FeignTargetAnnotationProcessor extends AbstractProcessor {
     return type.getCanonicalName();
   }
 
-  private Contract getContract(AnnotatedTargetMetadata metadata) {
+  private AnnotatedContract getContract(AnnotatedTargetDefinition metadata) {
     /* obtain a contract reference for the remainder of this process */
     String contractClassName = metadata.getContractClassName();
-    Contract contract;
+    AnnotatedContract contract;
     try {
       Class<?> contractClass = Class.forName(contractClassName);
-      contract = (Contract) contractClass.getDeclaredConstructor().newInstance();
+      contract = (AnnotatedContract) contractClass.getDeclaredConstructor().newInstance();
     } catch (ClassNotFoundException cnfe) {
-      throw new IllegalStateException("Contract Class " + contractClassName + " cannot be found.  "
-          + "Please ensure that it is on the classpath, and not part of the project currently "
-          + "being built.  Contracts must be built prior to use.");
+      throw new IllegalStateException(
+          "Contract Class " + contractClassName + " cannot be found.  "
+              + "Please ensure that it is on the classpath, and not part of the project currently "
+              + "being built.  Contracts must be built prior to use.");
     } catch (NoSuchMethodException nsme) {
       throw new IllegalStateException("Contract Class " + contractClassName
           + " does not have a default, no argument constructor.");
