@@ -43,11 +43,11 @@ public abstract class AbstractAnnotationDrivenContract implements Contract {
   private static final Logger logger =
       LoggerFactory.getLogger(AbstractAnnotationDrivenContract.class);
 
-  private final Map<Class<? extends Annotation>,
+  protected final Map<Class<? extends Annotation>,
       AnnotationProcessor<Annotation>> annotationProcessors = new ConcurrentHashMap<>();
 
-  private final Map<Class<? extends Annotation>,
-      ParameterAnnotationProcessor<Annotation>> processAnnotationProcessors =
+  protected final Map<Class<? extends Annotation>,
+      ParameterAnnotationProcessor<Annotation>> parameterAnnotationProcessors =
       new ConcurrentHashMap<>();
 
   /**
@@ -143,10 +143,11 @@ public abstract class AbstractAnnotationDrivenContract implements Contract {
       String type, TargetMethodDefinition.Builder builder) {
     Arrays.stream(annotations)
         .filter(
-            annotation -> this.processAnnotationProcessors.containsKey(annotation.annotationType()))
+            annotation -> this.parameterAnnotationProcessors
+                .containsKey(annotation.annotationType()))
         .forEach(annotation -> {
           ParameterAnnotationProcessor<Annotation> annotationProcessor =
-              this.processAnnotationProcessors.get(annotation.annotationType());
+              this.parameterAnnotationProcessors.get(annotation.annotationType());
           annotationProcessor.process(annotation, index, type, builder);
         });
   }
@@ -161,7 +162,7 @@ public abstract class AbstractAnnotationDrivenContract implements Contract {
   @SuppressWarnings("unchecked")
   protected <A extends Annotation> void registerParameterAnnotationProcessor(
       Class<A> annotation, ParameterAnnotationProcessor<A> processor) {
-    this.processAnnotationProcessors
+    this.parameterAnnotationProcessors
         .computeIfAbsent(annotation,
             annotationType -> (ParameterAnnotationProcessor<Annotation>) processor);
   }

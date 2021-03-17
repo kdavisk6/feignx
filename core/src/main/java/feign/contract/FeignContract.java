@@ -16,20 +16,16 @@
 
 package feign.contract;
 
+import feign.annotation.AnnotatedContract;
 import feign.template.expander.CachingExpanderRegistry;
 import java.lang.annotation.Annotation;
-import java.lang.reflect.Method;
-import java.lang.reflect.Type;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Set;
 
 /**
  * Contract that uses Feign annotations.
  */
-public class FeignContract extends AbstractAnnotationDrivenContract {
+public class FeignContract extends AbstractAnnotationDrivenContract implements AnnotatedContract {
 
   /**
    * Creates a new Feign Contract.
@@ -43,4 +39,30 @@ public class FeignContract extends AbstractAnnotationDrivenContract {
     this.registerParameterAnnotationProcessor(Body.class, new BodyAnnotationProcessor());
   }
 
+  @Override
+  public Collection<Class<? extends Annotation>> getSupportedClassAnnotations() {
+    return Set.of(Request.class, Headers.class);
+  }
+
+  @Override
+  public Collection<Class<? extends Annotation>> getSupportedMethodAnnotations() {
+    return Set.of(Request.class, Headers.class);
+  }
+
+  @Override
+  public Collection<Class<? extends Annotation>> getSupportedParameterAnnotations() {
+    return Set.of(Param.class, Body.class);
+  }
+
+  @Override
+  public <T extends Annotation> AnnotationProcessor<Annotation> getAnnotationProcessor(
+      T annotation) {
+    return this.annotationProcessors.get(annotation.annotationType());
+  }
+
+  @Override
+  public <T extends Annotation> ParameterAnnotationProcessor<Annotation>
+      getParameterAnnotationProcessor(T annotation) {
+    return this.parameterAnnotationProcessors.get(annotation.annotationType());
+  }
 }

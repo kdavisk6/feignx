@@ -16,9 +16,12 @@
 
 package feign.annotation;
 
-import feign.Contract;
 import feign.FeignTarget;
-import feign.impl.type.TypeDefinitionFactory;
+import feign.TargetMethodDefinition;
+import feign.contract.AnnotationProcessor;
+import feign.contract.ParameterAnnotationProcessor;
+import feign.http.HttpHeader;
+import feign.template.TemplateParameter;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Collection;
@@ -30,14 +33,13 @@ import javax.annotation.processing.ProcessingEnvironment;
 import javax.annotation.processing.RoundEnvironment;
 import javax.annotation.processing.SupportedSourceVersion;
 import javax.lang.model.SourceVersion;
+import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.MirroredTypeException;
-import javax.lang.model.util.Elements;
-import javax.lang.model.util.Types;
 import javax.tools.Diagnostic.Kind;
 
 /**
@@ -46,16 +48,11 @@ import javax.tools.Diagnostic.Kind;
 @SupportedSourceVersion(SourceVersion.RELEASE_11)
 public class FeignTargetAnnotationProcessor extends AbstractProcessor {
 
-  private Types types;
-  private Elements elements;
   private Messager messager;
-  private final TypeDefinitionFactory typeDefinitionFactory = TypeDefinitionFactory.getInstance();
 
   @Override
   public synchronized void init(ProcessingEnvironment processingEnv) {
     super.init(processingEnv);
-    this.types = processingEnv.getTypeUtils();
-    this.elements = processingEnv.getElementUtils();
     this.messager = processingEnv.getMessager();
   }
 
@@ -75,26 +72,67 @@ public class FeignTargetAnnotationProcessor extends AbstractProcessor {
             /* obtain a contract instance for the rest of this process */
             AnnotatedContract contract = this.getContract(metadata);
 
+            /* create our builders */
+            TargetMethodDefinition.Builder rootBuilder = TargetMethodDefinition
+                .builder(new AnnotatedTarget<>(target));
+
             /* check the target element for top level information */
-            AnnotatedTargetMethodDefinition.Builder methodMetadata = AnnotatedTargetMethodDefinition
-                .builder();
+            this.processAnnotationOnClass(typeElement, contract, rootBuilder);
 
-            this.processAnnotationOnClass(typeElement, contract, methodMetadata);
+            /* lock in our shared method definition */
+            TargetMethodDefinition root = rootBuilder.build();
 
+            /* next, deal with any methods and their parameters */
             typeElement.getEnclosedElements()
                 .stream()
                 .filter(executableElement -> ElementKind.METHOD == executableElement.getKind())
                 .map(ExecutableElement.class::cast)
                 .forEach(method -> {
-                  this.processAnnotationOnMethod(method, contract, methodMetadata);
+                  AnnotatedTargetMethodDefinition.Builder annotationMetadata =
+                      AnnotatedTargetMethodDefinition.builder();
+
+                  TargetMethodDefinition.Builder methodMetadata = TargetMethodDefinition.from(root);
+                  this.processAnnotationOnMethod(method, contract, methodMetadata,
+                      annotationMetadata);
 
                   List<? extends VariableElement> parameters = method.getParameters();
                   if (!parameters.isEmpty()) {
                     for (int i = 0; i < parameters.size(); i++) {
                       VariableElement parameter = parameters.get(i);
+
+                      /*
+                       * TODO: Feign Contract tries to eagerly create the Expander during this step,
+                       *  This can't be because it throws a MirroredTypeException, so we'll need
+                       *  to rethink that eager creation so this can work in both processor and
+                       *  reflective modes
+                       */
                       this.processAnnotationOnParameter(parameter, i, contract, methodMetadata);
                     }
                   }
+
+                  TargetMethodDefinition definition = methodMetadata.build();
+                  annotationMetadata
+                      .name(definition.getName())
+                      .body(definition.getBody())
+                      .connectTimeout(definition.getConnectTimeout())
+                      .requestTimeout(definition.getReadTimeout())
+                      .followRedirects(definition.isFollowRedirects())
+                      .method(definition.getMethod())
+                      .uri(definition.getUri());
+
+                  if (!definition.getHeaders().isEmpty()) {
+                    for (HttpHeader header : definition.getHeaders()) {
+                      annotationMetadata.header(header);
+                    }
+                  }
+
+                  if (!definition.getTemplateParameters().isEmpty()) {
+                    for (TemplateParameter parameter : definition.getTemplateParameters()) {
+                      annotationMetadata.parameter(parameter);
+                    }
+                  }
+
+                  System.out.println(annotationMetadata.build());
                 });
           });
       return true;
@@ -110,39 +148,44 @@ public class FeignTargetAnnotationProcessor extends AbstractProcessor {
   }
 
   private void processAnnotationOnClass(TypeElement typeElement, AnnotatedContract contract,
-      AnnotatedTargetMethodDefinition.Builder builder) {
-    Collection<Class<? extends Annotation>> classAnnotations = contract
-        .getSupportedClassAnnotations();
-    if (!classAnnotations.isEmpty()) {
-      classAnnotations.forEach(annotation -> {
-        Annotation ann = typeElement.getAnnotation(annotation);
-        if (ann != null) {
-          System.out.println(ann);
-        }
-      });
-    }
+      TargetMethodDefinition.Builder methodMetadata) {
+    this.processAnnotations(typeElement, contract, contract.getSupportedClassAnnotations(),
+        methodMetadata);
   }
 
   private void processAnnotationOnMethod(ExecutableElement element, AnnotatedContract contract,
-      AnnotatedTargetMethodDefinition.Builder builder) {
+      TargetMethodDefinition.Builder methodMetadata,
+      AnnotatedTargetMethodDefinition.Builder annotationMetadata) {
 
-    builder.name(element.getSimpleName().toString())
+    methodMetadata.name(element.getSimpleName().toString());
+    annotationMetadata.name(element.getSimpleName().toString())
         .returnTypeClassName(element.getReturnType().toString());
 
-    Collection<Class<? extends Annotation>> classAnnotations = contract
-        .getSupportedMethodAnnotations();
-    if (!classAnnotations.isEmpty()) {
-      classAnnotations.forEach(annotation -> {
+    this.processAnnotations(element, contract, contract.getSupportedMethodAnnotations(),
+        methodMetadata);
+
+  }
+
+  private void processAnnotations(Element element, AnnotatedContract contract,
+      Collection<Class<? extends Annotation>> annotations,
+      TargetMethodDefinition.Builder methodMetadata) {
+
+    if (!annotations.isEmpty()) {
+      annotations.forEach(annotation -> {
         Annotation ann = element.getAnnotation(annotation);
         if (ann != null) {
-          System.out.println(ann);
+          AnnotationProcessor<Annotation> processor = contract.getAnnotationProcessor(ann);
+          if (processor != null) {
+            processor.process(ann, methodMetadata);
+          }
         }
       });
     }
   }
 
   private void processAnnotationOnParameter(VariableElement element, Integer index,
-      AnnotatedContract contract, AnnotatedTargetMethodDefinition.Builder builder) {
+      AnnotatedContract contract,
+      TargetMethodDefinition.Builder methodMetadata) {
 
     Collection<Class<? extends Annotation>> classAnnotations = contract
         .getSupportedParameterAnnotations();
@@ -150,7 +193,11 @@ public class FeignTargetAnnotationProcessor extends AbstractProcessor {
       classAnnotations.forEach(annotation -> {
         Annotation ann = element.getAnnotation(annotation);
         if (ann != null) {
-          System.out.println(ann);
+          ParameterAnnotationProcessor<Annotation> processor =
+              contract.getParameterAnnotationProcessor(ann);
+          if (processor != null) {
+            processor.process(ann, index, element.getSimpleName().toString(), methodMetadata);
+          }
         }
       });
     }

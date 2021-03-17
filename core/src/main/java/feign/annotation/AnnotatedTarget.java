@@ -14,13 +14,29 @@
  * limitations under the License.
  */
 
-package feign.contract;
+package feign.annotation;
 
-import feign.TargetMethodDefinition;
-import java.lang.annotation.Annotation;
+import feign.Target;
+import feign.http.RequestSpecification;
 
-public interface ParameterAnnotationProcessor<T extends Annotation> {
+public class AnnotatedTarget<T> implements Target<T> {
 
-  void process(T annotation, Integer index, String type, TargetMethodDefinition.Builder builder);
+  AnnotatedTarget(String name) {
 
+  }
+
+  @Override
+  public Class<T> type() {
+    return null;
+  }
+
+  @Override
+  public String name() {
+    return null;
+  }
+
+  @Override
+  public void apply(RequestSpecification requestSpecification) {
+
+  }
 }

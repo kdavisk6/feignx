@@ -16,6 +16,7 @@
 
 package feign;
 
+import feign.annotation.AnnotatedContract;
 import feign.contract.FeignContract;
 import feign.http.client.UrlConnectionClient;
 import feign.logging.SimpleLogger;
@@ -73,11 +74,11 @@ public @interface FeignTarget {
   Class<? extends Client> client() default UrlConnectionClient.class;
 
   /**
-   * {@link Contract} to use.
+   * {@link AnnotatedContract} to use.
    *
-   * @return Contract type.
+   * @return AnnotatedContract type.
    */
-  Class<? extends Contract> contract() default FeignContract.class;
+  Class<? extends AnnotatedContract> contract() default FeignContract.class;
 
   /**
    * {@link Logger} to use.
