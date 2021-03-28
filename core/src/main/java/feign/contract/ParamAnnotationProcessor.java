@@ -17,39 +17,39 @@
 package feign.contract;
 
 import feign.TargetMethodDefinition.Builder;
-import feign.template.ExpanderRegistry;
+import feign.TargetMethodParameterDefinition;
 import feign.template.ExpressionExpander;
-import feign.template.SimpleTemplateParameter;
-import feign.template.expander.DefaultExpander;
+import javax.lang.model.element.TypeElement;
+import javax.lang.model.type.DeclaredType;
+import javax.lang.model.type.MirroredTypeException;
 
 public class ParamAnnotationProcessor implements ParameterAnnotationProcessor<Param> {
 
-  private final ExpanderRegistry expanderRegistry;
-
-  public ParamAnnotationProcessor(ExpanderRegistry expanderRegistry) {
-    this.expanderRegistry = expanderRegistry;
-  }
 
   @Override
   public void process(Param annotation, Integer index, String type, Builder builder) {
     String name = annotation.value();
-    Class<? extends ExpressionExpander> expanderClass = annotation.expander();
 
-    /* inspect the type annotated */
-    ExpressionExpander expander;
-    if (this.isCustomExpander(expanderClass)) {
-      /* retrieve an instance of the custom expander */
-      expander = this.expanderRegistry.getExpander(expanderClass);
-    } else {
-      /* retrieve the expander from the registry by the parameter type */
-      expander = this.expanderRegistry.getExpanderByTypeName(type);
+    /* get the expander class name, may be in an annotation processor so handle any
+     * mirrors.
+     */
+    String expanderClassName;
+    try {
+      Class<? extends ExpressionExpander> expanderClass = annotation.expander();
+      expanderClassName = expanderClass.getName();
+    } catch (MirroredTypeException mirroredTypeException) {
+      DeclaredType typeMirror = (DeclaredType) mirroredTypeException.getTypeMirror();
+      TypeElement typeElement = (TypeElement) typeMirror.asElement();
+      expanderClassName = typeElement.getQualifiedName().toString();
     }
 
-    builder.templateParameter(
-        index, new SimpleTemplateParameter(name, type, expander));
+    /* register the parameter definition */
+    builder.parameterDefinition(index, TargetMethodParameterDefinition.builder()
+        .name(name)
+        .index(index)
+        .type(type)
+        .expanderClassName(expanderClassName)
+        .build());
   }
 
-  private boolean isCustomExpander(Class<? extends ExpressionExpander> expanderClass) {
-    return DefaultExpander.class != expanderClass;
-  }
 }

@@ -21,12 +21,14 @@ import feign.FeignConfiguration;
 import feign.TargetMethodDefinition;
 import feign.TargetMethodHandler;
 import feign.TargetMethodHandlerFactory;
+import feign.TargetMethodParameterDefinition;
 import feign.http.HttpHeader;
 import feign.http.HttpMethod;
 import feign.impl.TypeDrivenMethodHandlerFactory;
 import feign.impl.UriTarget;
 import feign.template.SimpleTemplateParameter;
 import feign.template.TemplateParameter;
+import feign.template.expander.DefaultExpander;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -67,8 +69,19 @@ public class TestServiceFunctionalTest {
                   -1, -1, -1,
                   List.of(),
                   List.of(
-                      new SimpleTemplateParameter("owner", String.class.getName()),
-                      new SimpleTemplateParameter("repo", String.class.getName()))));
+                      TargetMethodParameterDefinition.builder()
+                          .index(0)
+                          .name("owner")
+                          .expanderClassName(DefaultExpander.class.getName())
+                          .type(String.class.getName())
+                          .build(),
+                      TargetMethodParameterDefinition.builder()
+                          .index(1)
+                          .name("repo")
+                          .expanderClassName(DefaultExpander.class.getName())
+                          .type(String.class.getName())
+                          .build())));
+
       try {
         return (List<String>) targetMethodHandler.execute(new Object[]{owner, repository});
       } catch (Throwable th) {
@@ -87,7 +100,7 @@ public class TestServiceFunctionalTest {
         long connectTimeout,
         int body,
         List<HttpHeader> headers,
-        List<TemplateParameter> parameters) {
+        List<TargetMethodParameterDefinition> parameters) {
       TargetMethodDefinition.Builder builder = TargetMethodDefinition.builder(
           new UriTarget<>(type, this.feignConfiguration.getUri().toString()))
           .method(method)
@@ -101,9 +114,9 @@ public class TestServiceFunctionalTest {
 
       List<String> parameterTypes = new ArrayList<>();
       for (int i = 0; i < parameters.size(); i++) {
-        TemplateParameter templateParameter = parameters.get(i);
-        builder.templateParameter(i, templateParameter);
-        parameterTypes.add(templateParameter.type());
+        TargetMethodParameterDefinition templateParameter = parameters.get(i);
+        builder.parameterDefinition(i, templateParameter);
+        parameterTypes.add(templateParameter.getType());
       }
 
       builder.tag(this.getMethodTag(

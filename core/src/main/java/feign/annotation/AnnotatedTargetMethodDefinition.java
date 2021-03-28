@@ -16,11 +16,13 @@
 
 package feign.annotation;
 
+import feign.TargetMethodParameterDefinition;
 import feign.http.HttpHeader;
 import feign.http.HttpHeaders;
 import feign.http.HttpMethod;
 import feign.template.TemplateParameter;
 import java.util.Set;
+import java.util.StringJoiner;
 import java.util.concurrent.CopyOnWriteArraySet;
 import net.jcip.annotations.Immutable;
 import net.jcip.annotations.ThreadSafe;
@@ -38,7 +40,7 @@ public class AnnotatedTargetMethodDefinition {
   private final long connectTimeout;
   private final Integer bodyIndex;
   private final HttpHeaders headers;
-  private final Set<TemplateParameter> parameters;
+  private final Set<TargetMethodParameterDefinition> parameters;
 
   public static Builder builder() {
     return new Builder();
@@ -47,7 +49,7 @@ public class AnnotatedTargetMethodDefinition {
   private AnnotatedTargetMethodDefinition(String name, String uri, HttpMethod method,
       String returnTypeClassName, boolean followRedirects, long requestTimeout, long connectTimeout,
       Integer bodyIndex, HttpHeaders headers,
-      Set<TemplateParameter> parameters) {
+      Set<TargetMethodParameterDefinition> parameters) {
     this.name = name;
     this.uri = uri;
     this.method = method;
@@ -92,8 +94,25 @@ public class AnnotatedTargetMethodDefinition {
     return headers;
   }
 
-  public Set<TemplateParameter> getParameters() {
+  public Set<TargetMethodParameterDefinition> getParameters() {
     return parameters;
+  }
+
+  @Override
+  public String toString() {
+    return new StringJoiner(", ",
+        AnnotatedTargetMethodDefinition.class.getSimpleName() + "[", "]")
+        .add("name='" + name + "'")
+        .add("uri='" + uri + "'")
+        .add("method=" + method)
+        .add("returnTypeClassName='" + returnTypeClassName + "'")
+        .add("followRedirects=" + followRedirects)
+        .add("requestTimeout=" + requestTimeout)
+        .add("connectTimeout=" + connectTimeout)
+        .add("bodyIndex=" + bodyIndex)
+        .add("headers=" + headers)
+        .add("parameters=" + parameters)
+        .toString();
   }
 
   public static class Builder {
@@ -107,7 +126,7 @@ public class AnnotatedTargetMethodDefinition {
     private long connectTimeout;
     private Integer bodyIndex;
     private final HttpHeaders headers = new HttpHeaders();
-    private final Set<TemplateParameter> parameters = new CopyOnWriteArraySet<>();
+    private final Set<TargetMethodParameterDefinition> parameters = new CopyOnWriteArraySet<>();
 
     public Builder uri(String uri) {
       this.uri = uri;
@@ -154,7 +173,7 @@ public class AnnotatedTargetMethodDefinition {
       return this;
     }
 
-    public Builder parameter(TemplateParameter parameter) {
+    public Builder parameter(TargetMethodParameterDefinition parameter) {
       this.parameters.add(parameter);
       return this;
     }

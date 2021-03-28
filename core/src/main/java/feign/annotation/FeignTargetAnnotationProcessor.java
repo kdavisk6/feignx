@@ -18,6 +18,7 @@ package feign.annotation;
 
 import feign.FeignTarget;
 import feign.TargetMethodDefinition;
+import feign.TargetMethodParameterDefinition;
 import feign.contract.AnnotationProcessor;
 import feign.contract.ParameterAnnotationProcessor;
 import feign.http.HttpHeader;
@@ -40,6 +41,9 @@ import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.MirroredTypeException;
+import javax.lang.model.type.TypeMirror;
+import javax.lang.model.util.Elements;
+import javax.lang.model.util.Types;
 import javax.tools.Diagnostic.Kind;
 
 /**
@@ -49,11 +53,15 @@ import javax.tools.Diagnostic.Kind;
 public class FeignTargetAnnotationProcessor extends AbstractProcessor {
 
   private Messager messager;
+  private Elements elements;
+  private Types types;
 
   @Override
   public synchronized void init(ProcessingEnvironment processingEnv) {
     super.init(processingEnv);
     this.messager = processingEnv.getMessager();
+    this.elements = processingEnv.getElementUtils();
+    this.types = processingEnv.getTypeUtils();
   }
 
   @Override
@@ -126,8 +134,9 @@ public class FeignTargetAnnotationProcessor extends AbstractProcessor {
                     }
                   }
 
-                  if (!definition.getTemplateParameters().isEmpty()) {
-                    for (TemplateParameter parameter : definition.getTemplateParameters()) {
+                  if (!definition.getParameterDefinitions().isEmpty()) {
+                    for (TargetMethodParameterDefinition parameter : definition
+                        .getParameterDefinitions()) {
                       annotationMetadata.parameter(parameter);
                     }
                   }
@@ -196,7 +205,12 @@ public class FeignTargetAnnotationProcessor extends AbstractProcessor {
           ParameterAnnotationProcessor<Annotation> processor =
               contract.getParameterAnnotationProcessor(ann);
           if (processor != null) {
-            processor.process(ann, index, element.getSimpleName().toString(), methodMetadata);
+            DeclaredType declaredType = (DeclaredType) element.asType();
+
+            processor.process(
+                ann, index,
+                this.getQualifiedNameFromElement((TypeElement) declaredType.asElement()),
+                methodMetadata);
           }
         }
       });
@@ -250,7 +264,10 @@ public class FeignTargetAnnotationProcessor extends AbstractProcessor {
 
   private String getQualifiedNameFromException(MirroredTypeException mte) {
     DeclaredType typeMirror = (DeclaredType) mte.getTypeMirror();
-    TypeElement typeElement = (TypeElement) typeMirror.asElement();
+    return this.getQualifiedNameFromElement((TypeElement) typeMirror.asElement());
+  }
+
+  private String getQualifiedNameFromElement(TypeElement typeElement) {
     return typeElement.getQualifiedName().toString();
   }
 

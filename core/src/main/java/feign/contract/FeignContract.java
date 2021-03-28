@@ -17,7 +17,6 @@
 package feign.contract;
 
 import feign.annotation.AnnotatedContract;
-import feign.template.expander.CachingExpanderRegistry;
 import java.lang.annotation.Annotation;
 import java.util.Collection;
 import java.util.Set;
@@ -34,8 +33,7 @@ public class FeignContract extends AbstractAnnotationDrivenContract implements A
     super();
     this.registerAnnotationProcessor(Request.class, new RequestAnnotationProcessor());
     this.registerAnnotationProcessor(Headers.class, new HeadersAnnotationProcessor());
-    this.registerParameterAnnotationProcessor(Param.class,
-        new ParamAnnotationProcessor(new CachingExpanderRegistry()));
+    this.registerParameterAnnotationProcessor(Param.class, new ParamAnnotationProcessor());
     this.registerParameterAnnotationProcessor(Body.class, new BodyAnnotationProcessor());
   }
 
