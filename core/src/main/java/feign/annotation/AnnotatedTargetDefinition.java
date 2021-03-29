@@ -16,6 +16,10 @@
 
 package feign.annotation;
 
+import feign.support.StringUtils;
+import java.util.List;
+import java.util.StringJoiner;
+import java.util.concurrent.CopyOnWriteArrayList;
 import net.jcip.annotations.Immutable;
 import net.jcip.annotations.ThreadSafe;
 
@@ -27,6 +31,7 @@ import net.jcip.annotations.ThreadSafe;
 @Immutable
 public class AnnotatedTargetDefinition {
 
+  private final String targetPackage;
   private final String targetName;
   private final String targetType;
   private final String targetUri;
@@ -36,16 +41,20 @@ public class AnnotatedTargetDefinition {
   private final String exceptionHandlerClassName;
   private final String requestEncoderClassName;
   private final String responseDecoderClassName;
+  private final List<AnnotatedTargetMethodDefinition> methodDefinitions =
+      new CopyOnWriteArrayList<>();
 
-  public static Builder builder(String targetName, String targetType, String targetUri) {
-    return new Builder(targetName, targetType, targetUri);
+  public static Builder builder(String targetPackage, String targetName, String targetType,
+      String targetUri) {
+    return new Builder(targetPackage, targetName, targetType, targetUri);
   }
 
-  private AnnotatedTargetDefinition(String targetName, String targetType, String targetUri,
-      String clientClassName, String contractClassName, String loggerClassName,
+  private AnnotatedTargetDefinition(String targetName, String targetType, String targetPackage,
+      String targetUri, String clientClassName, String contractClassName, String loggerClassName,
       String exceptionHandlerClassName, String requestEncoderClassName,
-      String responseDecoderClassName) {
-    this.targetName = targetName;
+      String responseDecoderClassName, List<AnnotatedTargetMethodDefinition> methodDefinitions) {
+    this.targetPackage = targetPackage;
+    this.targetName = (!StringUtils.isEmpty(targetName)) ? targetName : targetType;
     this.targetType = targetType;
     this.targetUri = targetUri;
     this.clientClassName = clientClassName;
@@ -54,6 +63,11 @@ public class AnnotatedTargetDefinition {
     this.exceptionHandlerClassName = exceptionHandlerClassName;
     this.requestEncoderClassName = requestEncoderClassName;
     this.responseDecoderClassName = responseDecoderClassName;
+    this.methodDefinitions.addAll(methodDefinitions);
+  }
+
+  public String getTargetPackage() {
+    return this.targetPackage;
   }
 
   public String getTargetName() {
@@ -92,11 +106,34 @@ public class AnnotatedTargetDefinition {
     return responseDecoderClassName;
   }
 
+  public List<AnnotatedTargetMethodDefinition> getMethodDefinitions() {
+    return List.copyOf(this.methodDefinitions);
+  }
+
+  @Override
+  public String toString() {
+    return new StringJoiner(", ", AnnotatedTargetDefinition.class.getSimpleName() + "[",
+        "]")
+        .add("targetPackage='" + targetPackage + "'")
+        .add("targetName='" + targetName + "'")
+        .add("targetType='" + targetType + "'")
+        .add("targetUri='" + targetUri + "'")
+        .add("clientClassName='" + clientClassName + "'")
+        .add("contractClassName='" + contractClassName + "'")
+        .add("loggerClassName='" + loggerClassName + "'")
+        .add("exceptionHandlerClassName='" + exceptionHandlerClassName + "'")
+        .add("requestEncoderClassName='" + requestEncoderClassName + "'")
+        .add("responseDecoderClassName='" + responseDecoderClassName + "'")
+        .add("methodDefinitions=" + methodDefinitions)
+        .toString();
+  }
+
   /**
    * Builder for Annotated Target Metadata.
    */
   public static class Builder {
 
+    private final String targetPackage;
     private final String targetName;
     private final String targetType;
     private final String targetUri;
@@ -106,8 +143,11 @@ public class AnnotatedTargetDefinition {
     private String exceptionHandlerClassName;
     private String requestEncoderClassName;
     private String responseDecoderClassName;
+    private final List<AnnotatedTargetMethodDefinition> methodDefinitions =
+        new CopyOnWriteArrayList<>();
 
-    Builder(String targetName, String targetType, String targetUri) {
+    Builder(String targetPackage, String targetName, String targetType, String targetUri) {
+      this.targetPackage = targetPackage;
       this.targetName = targetName;
       this.targetType = targetType;
       this.targetUri = targetUri;
@@ -143,16 +183,25 @@ public class AnnotatedTargetDefinition {
       return this;
     }
 
+    public Builder methodDefinition(AnnotatedTargetMethodDefinition methodDefinition) {
+      this.methodDefinitions.add(methodDefinition);
+      return this;
+    }
+
+    public String getContractClassName() {
+      return this.contractClassName;
+    }
+
     /**
      * Creates a new {@link AnnotatedTargetDefinition} instance.
      *
      * @return an {@link AnnotatedTargetDefinition} instance.
      */
     public AnnotatedTargetDefinition build() {
-      return new AnnotatedTargetDefinition(this.targetName, this.targetType, this.targetUri,
-          this.clientClassName, this.contractClassName, this.loggerClassName,
+      return new AnnotatedTargetDefinition(this.targetName, this.targetType, this.targetPackage,
+          this.targetUri, this.clientClassName, this.contractClassName, this.loggerClassName,
           this.exceptionHandlerClassName, this.requestEncoderClassName,
-          this.responseDecoderClassName);
+          this.responseDecoderClassName, this.methodDefinitions);
     }
   }
 

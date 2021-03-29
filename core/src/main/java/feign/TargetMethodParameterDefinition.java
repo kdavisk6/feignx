@@ -17,6 +17,7 @@
 package feign;
 
 import feign.support.Assert;
+import feign.support.StringUtils;
 import java.util.Objects;
 import java.util.StringJoiner;
 import net.jcip.annotations.Immutable;
@@ -29,6 +30,7 @@ import net.jcip.annotations.ThreadSafe;
 @Immutable
 public class TargetMethodParameterDefinition {
 
+  private final String parameter;
   private final String name;
   private final String type;
   private final Integer index;
@@ -41,18 +43,22 @@ public class TargetMethodParameterDefinition {
   /**
    * Create a new {@link TargetMethodParameterDefinition}.
    *
-   * @param name of the parameter.
+   * @param parameter as defined in the URI template
+   * @param name of the parameter as defined in the method.
    * @param type of the parameter.
    * @param index of the parameter in the method definition.
    * @param expanderClassName of the expander to use when resolving this parameter.
    */
-  private TargetMethodParameterDefinition(String name, String type, Integer index,
+  private TargetMethodParameterDefinition(String parameter, String name, String type, Integer index,
       String expanderClassName) {
     Assert.isNotEmpty(name, "name is required.");
     Assert.isNotEmpty(type, "type is required.");
     Assert.isNotNull(index, "argument index is required.");
     Assert.isTrue(index, idx -> idx >= 0, "argument index must be a positive number");
     Assert.isNotEmpty(expanderClassName, "expander class name is required.");
+
+    /* if the parameter value is empty, us the name of the parameter from the method signature */
+    this.parameter = (StringUtils.isEmpty(parameter)) ? name : parameter;
     this.name = name;
     this.type = type;
     this.index = index;
@@ -96,6 +102,10 @@ public class TargetMethodParameterDefinition {
     return expanderClassName;
   }
 
+  public String getParameter() {
+    return parameter;
+  }
+
   @Override
   public boolean equals(Object obj) {
     if (this == obj) {
@@ -105,20 +115,21 @@ public class TargetMethodParameterDefinition {
       return false;
     }
     TargetMethodParameterDefinition that = (TargetMethodParameterDefinition) obj;
-    return getName().equalsIgnoreCase(that.getName()) && getType().equals(that.getType())
+    return getParameter().equalsIgnoreCase(that.getParameter()) && getType().equals(that.getType())
         && getIndex().equals(that.getIndex())
         && getExpanderClassName().equals(that.getExpanderClassName());
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(getName(), getType(), getIndex(), getExpanderClassName());
+    return Objects.hash(getParameter(), getType(), getIndex(), getExpanderClassName());
   }
 
   @Override
   public String toString() {
     return new StringJoiner(", ",
         TargetMethodParameterDefinition.class.getSimpleName() + "[", "]")
+        .add("parameter='" + parameter + "'")
         .add("name='" + name + "'")
         .add("type='" + type + "'")
         .add("index=" + index)
@@ -131,13 +142,25 @@ public class TargetMethodParameterDefinition {
    */
   public static class Builder {
 
+    private String parameter;
     private String name;
     private String type;
     private Integer index;
     private String expanderClassName;
 
     /**
-     * Parameter Name.
+     * Parameter name as it appears in the URI Template.
+     *
+     * @param parameter name from the template.
+     * @return a builder instance for chaining.
+     */
+    public Builder parameter(String parameter) {
+      this.parameter = parameter;
+      return this;
+    }
+
+    /**
+     * Parameter Name as it appears in the method.
      *
      * @param name of the parameter.
      * @return a builder instance for chaining.
@@ -186,7 +209,7 @@ public class TargetMethodParameterDefinition {
      * @return a new {@link TargetMethodParameterDefinition} instance.
      */
     public TargetMethodParameterDefinition build() {
-      return new TargetMethodParameterDefinition(this.name, this.type, this.index,
+      return new TargetMethodParameterDefinition(this.parameter, this.name, this.type, this.index,
           this.expanderClassName);
     }
   }

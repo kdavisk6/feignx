@@ -27,8 +27,8 @@ public class ParamAnnotationProcessor implements ParameterAnnotationProcessor<Pa
 
 
   @Override
-  public void process(Param annotation, Integer index, String type, Builder builder) {
-    String name = annotation.value();
+  public void process(Param annotation, String name, Integer index, String type, Builder builder) {
+    String parameter = annotation.value();
 
     /* get the expander class name, may be in an annotation processor so handle any
      * mirrors.
@@ -45,6 +45,7 @@ public class ParamAnnotationProcessor implements ParameterAnnotationProcessor<Pa
 
     /* register the parameter definition */
     builder.parameterDefinition(index, TargetMethodParameterDefinition.builder()
+        .parameter(parameter)
         .name(name)
         .index(index)
         .type(type)

@@ -22,7 +22,6 @@ import feign.TargetMethodParameterDefinition;
 import feign.contract.AnnotationProcessor;
 import feign.contract.ParameterAnnotationProcessor;
 import feign.http.HttpHeader;
-import feign.template.TemplateParameter;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Collection;
@@ -37,11 +36,11 @@ import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.element.PackageElement;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.MirroredTypeException;
-import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.Elements;
 import javax.lang.model.util.Types;
 import javax.tools.Diagnostic.Kind;
@@ -75,10 +74,11 @@ public class FeignTargetAnnotationProcessor extends AbstractProcessor {
             final String target = typeElement.getQualifiedName().toString();
 
             FeignTarget feignTarget = element.getAnnotation(FeignTarget.class);
-            AnnotatedTargetDefinition metadata = this.annotatedTargetMetadata(feignTarget, target);
+            AnnotatedTargetDefinition.Builder metadata = this
+                .annotatedTargetMetadata(feignTarget, target);
 
             /* obtain a contract instance for the rest of this process */
-            AnnotatedContract contract = this.getContract(metadata);
+            AnnotatedContract contract = this.getContract(metadata.getContractClassName());
 
             /* create our builders */
             TargetMethodDefinition.Builder rootBuilder = TargetMethodDefinition
@@ -107,13 +107,6 @@ public class FeignTargetAnnotationProcessor extends AbstractProcessor {
                   if (!parameters.isEmpty()) {
                     for (int i = 0; i < parameters.size(); i++) {
                       VariableElement parameter = parameters.get(i);
-
-                      /*
-                       * TODO: Feign Contract tries to eagerly create the Expander during this step,
-                       *  This can't be because it throws a MirroredTypeException, so we'll need
-                       *  to rethink that eager creation so this can work in both processor and
-                       *  reflective modes
-                       */
                       this.processAnnotationOnParameter(parameter, i, contract, methodMetadata);
                     }
                   }
@@ -140,9 +133,9 @@ public class FeignTargetAnnotationProcessor extends AbstractProcessor {
                       annotationMetadata.parameter(parameter);
                     }
                   }
-
-                  System.out.println(annotationMetadata.build());
+                  metadata.methodDefinition(annotationMetadata.build());
                 });
+            System.out.println(metadata.build());
           });
       return true;
     } catch (Exception ex) {
@@ -208,7 +201,8 @@ public class FeignTargetAnnotationProcessor extends AbstractProcessor {
             DeclaredType declaredType = (DeclaredType) element.asType();
 
             processor.process(
-                ann, index,
+                ann, element.getSimpleName().toString(),
+                index,
                 this.getQualifiedNameFromElement((TypeElement) declaredType.asElement()),
                 methodMetadata);
           }
@@ -217,10 +211,20 @@ public class FeignTargetAnnotationProcessor extends AbstractProcessor {
     }
   }
 
-  private AnnotatedTargetDefinition annotatedTargetMetadata(FeignTarget feignTarget,
-      String targetType) {
+  private AnnotatedTargetDefinition.Builder annotatedTargetMetadata(FeignTarget feignTarget,
+      String targetClassName) {
+    TypeElement targetElement = this.elements.getTypeElement(targetClassName);
+    String targetType = targetElement.getSimpleName().toString();
+
+    PackageElement packageElement = this.elements.getPackageOf(targetElement);
+    String targetPackage = "";
+    if (!packageElement.isUnnamed()) {
+      targetPackage = packageElement.getQualifiedName().toString();
+    }
+
     AnnotatedTargetDefinition.Builder builder =
-        AnnotatedTargetDefinition.builder(feignTarget.value(), targetType, feignTarget.uri());
+        AnnotatedTargetDefinition
+            .builder(targetPackage, feignTarget.value(), targetType, feignTarget.uri());
 
     /* process each class reference one by one, dealing with type mirrors as we go */
     try {
@@ -259,7 +263,7 @@ public class FeignTargetAnnotationProcessor extends AbstractProcessor {
       builder.logger(this.getQualifiedNameFromException(mte));
     }
 
-    return builder.build();
+    return builder;
   }
 
   private String getQualifiedNameFromException(MirroredTypeException mte) {
@@ -275,9 +279,8 @@ public class FeignTargetAnnotationProcessor extends AbstractProcessor {
     return type.getCanonicalName();
   }
 
-  private AnnotatedContract getContract(AnnotatedTargetDefinition metadata) {
+  private AnnotatedContract getContract(String contractClassName) {
     /* obtain a contract reference for the remainder of this process */
-    String contractClassName = metadata.getContractClassName();
     AnnotatedContract contract;
     try {
       Class<?> contractClass = Class.forName(contractClassName);

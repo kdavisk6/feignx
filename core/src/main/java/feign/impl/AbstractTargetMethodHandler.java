@@ -327,7 +327,7 @@ public abstract class AbstractTargetMethodHandler implements TargetMethodHandler
   private TemplateParameter getTemplateParameterForIndex(int index,
       TargetMethodParameterDefinition definition) {
     return this.parameterMap.computeIfAbsent(index,
-        idx -> new SimpleTemplateParameter(definition.getName(),
+        idx -> new SimpleTemplateParameter(definition.getParameter(),
             getExpressionExpanderFor(definition)));
   }
 

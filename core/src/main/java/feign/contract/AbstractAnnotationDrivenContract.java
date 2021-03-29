@@ -87,7 +87,9 @@ public abstract class AbstractAnnotationDrivenContract implements Contract {
       Parameter[] parameters = method.getParameters();
       for (int i = 0; i < parameters.length; i++) {
         Parameter parameter = parameters[i];
-        this.processAnnotationsOnParameter(parameter.getAnnotations(), i,
+        this.processAnnotationsOnParameter(parameter.getAnnotations(),
+            parameter.getName(),
+            i,
             parameter.getType().getCanonicalName(), methodBuilder);
       }
 
@@ -139,7 +141,7 @@ public abstract class AbstractAnnotationDrivenContract implements Contract {
         });
   }
 
-  private void processAnnotationsOnParameter(Annotation[] annotations, Integer index,
+  private void processAnnotationsOnParameter(Annotation[] annotations, String name, Integer index,
       String type, TargetMethodDefinition.Builder builder) {
     Arrays.stream(annotations)
         .filter(
@@ -148,7 +150,7 @@ public abstract class AbstractAnnotationDrivenContract implements Contract {
         .forEach(annotation -> {
           ParameterAnnotationProcessor<Annotation> annotationProcessor =
               this.parameterAnnotationProcessors.get(annotation.annotationType());
-          annotationProcessor.process(annotation, index, type, builder);
+          annotationProcessor.process(annotation, name, index, type, builder);
         });
   }
 
